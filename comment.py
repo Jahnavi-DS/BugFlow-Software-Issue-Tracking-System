@@ -1,22 +1,46 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import DateTime, ForeignKey, Integer, Text
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.database.database import Base
 
 
-class CommentCreate(BaseModel):
-    comment_text: str = Field(
-        ...,
-        min_length=1,
-        max_length=5000
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
     )
 
+    issue_id: Mapped[int] = mapped_column(
+        ForeignKey("issues.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
 
-class CommentResponse(BaseModel):
-    id: int
-    issue_id: int
-    user_id: int
-    comment_text: str
-    created_at: datetime
-    updated_at: datetime
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
 
-    model_config = ConfigDict(from_attributes=True)
+    comment_text: Mapped[str] = mapped_column(
+        Text,
+        nullable=False
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
