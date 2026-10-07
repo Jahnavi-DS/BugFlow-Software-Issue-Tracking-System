@@ -1,10 +1,9 @@
-from sqlalchemy import Column, Integer, String
-from app.database.database import Base
+from pydantic import BaseModel, ConfigDict
 
 
-class BugCategory(Base):
-    __tablename__ = "bug_categories"
+class CategoryResponse(BaseModel):
+    category_id: int
+    category_name: str
+    urgency: str
 
-    category_id = Column(Integer, primary_key=True, index=True)
-    category_name = Column(String(100), nullable=False, unique=True)
-    urgency = Column(String(20), nullable=False)
+    model_config = ConfigDict(from_attributes=True)

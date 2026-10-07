@@ -1,39 +1,33 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
-
-from app.database.database import Base
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class Project(Base):
-    __tablename__ = "projects"
-
-    project_id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True,
-        index=True
+class ProjectCreate(BaseModel):
+    project_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=150
     )
 
-    project_name: Mapped[str] = mapped_column(
-        String(150),
-        unique=True,
-        nullable=False,
-        index=True
+    codebase: str | None = Field(
+        default=None,
+        max_length=255
     )
 
-    codebase: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True
+    development_cycle: str | None = Field(
+        default=None,
+        max_length=100
     )
 
-    development_cycle: Mapped[str | None] = mapped_column(
-        String(100),
-        nullable=True
-    )
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False
+class ProjectResponse(BaseModel):
+    project_id: int
+    project_name: str
+    codebase: str | None
+    development_cycle: str | None
+    created_at: datetime
+
+    model_config = ConfigDict(
+        from_attributes=True
     )

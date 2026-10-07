@@ -1,92 +1,53 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
-
-from app.database.database import Base
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ============================================================
-# SPRINT MODEL
+# CREATE SPRINT REQUEST
 # ============================================================
 
-class Sprint(Base):
-    __tablename__ = "sprints"
-
-    # --------------------------------------------------------
-    # Primary Key
-    # --------------------------------------------------------
-
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True,
-        index=True
+class SprintCreate(BaseModel):
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=100
     )
 
-    # --------------------------------------------------------
-    # Sprint Name
-    # --------------------------------------------------------
+    goal: str | None = None
 
-    name: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False
+    start_date: date
+
+    end_date: date
+
+    status: str = Field(
+        default="PLANNING",
+        pattern="^(PLANNING|ACTIVE|COMPLETED)$"
     )
 
-    # --------------------------------------------------------
-    # Sprint Goal
-    # --------------------------------------------------------
 
-    goal: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True
+# ============================================================
+# SPRINT RESPONSE
+# ============================================================
+
+class SprintResponse(BaseModel):
+
+    model_config = ConfigDict(
+        from_attributes=True
     )
 
-    # --------------------------------------------------------
-    # Start Date
-    # --------------------------------------------------------
+    id: int
 
-    start_date: Mapped[date] = mapped_column(
-        Date,
-        nullable=False
-    )
+    name: str
 
-    # --------------------------------------------------------
-    # End Date
-    # --------------------------------------------------------
+    goal: str | None
 
-    end_date: Mapped[date] = mapped_column(
-        Date,
-        nullable=False
-    )
+    start_date: date
 
-    # --------------------------------------------------------
-    # Sprint Status
-    # PLANNING / ACTIVE / COMPLETED
-    # --------------------------------------------------------
+    end_date: date
 
-    status: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-        default="PLANNING"
-    )
+    status: str
 
-    # --------------------------------------------------------
-    # Velocity
-    # Number of successfully resolved issues
-    # --------------------------------------------------------
+    velocity: int
 
-    velocity: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-
-    # --------------------------------------------------------
-    # Created At
-    # --------------------------------------------------------
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False
-    )
+    created_at: datetime

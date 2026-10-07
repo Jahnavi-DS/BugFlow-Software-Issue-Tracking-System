@@ -1,217 +1,179 @@
 from datetime import datetime
-from enum import Enum
-from sqlalchemy import (
-    DateTime,
-    Enum as SQLEnum,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    Index
-)
-from sqlalchemy.orm import Mapped, mapped_column
 
-from app.database.database import Base
+from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.issue import IssueType, Severity, Priority, IssueStatus
 
 # ============================================================
-# ISSUE ENUMS
+# CREATE ISSUE REQUEST
 # ============================================================
 
-class Severity(str, Enum):
-    CRITICAL = "CRITICAL"
-    MAJOR = "MAJOR"
-    MINOR = "MINOR"
-    TRIVIAL = "TRIVIAL"
+class IssueCreate(BaseModel):
+    """
+    Schema used when creating a new issue.
+    """
 
+    project_id: int = Field(..., gt=0)
 
-class Priority(str, Enum):
-    URGENT = "URGENT"
-    HIGH = "HIGH"
-    MEDIUM = "MEDIUM"
-    LOW = "LOW"
-
-
-class IssueStatus(str, Enum):
-    REPORTED = "REPORTED"
-    TRIAGED = "TRIAGED"
-    IN_PROGRESS = "IN_PROGRESS"
-    CODE_REVIEW = "CODE_REVIEW"
-    QA_VERIFICATION = "QA_VERIFICATION"
-    RESOLVED = "RESOLVED"
-    CLOSED = "CLOSED"
-class IssueType(str, Enum):
-    BUG = "BUG"
-    FEATURE_REQUEST = "FEATURE_REQUEST"
-    ENHANCEMENT = "ENHANCEMENT"
-    TECHNICAL_DEBT = "TECHNICAL_DEBT"
-    SUPPORT_TICKET = "SUPPORT_TICKET"
-
-# ============================================================
-# ISSUE MODEL
-# ============================================================
-
-class Issue(Base):
-    __tablename__ = "issues"
-
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
-
-    # --------------------------------------------------------
-    # ASSOCIATIONS
-    # --------------------------------------------------------
-
-    project_id: Mapped[int] = mapped_column(
-        ForeignKey("projects.project_id"),
-        nullable=False,
-        index=True
-    )
-
-    reporter_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
-        nullable=False,
-        index=True
-    )
-
-    assignee_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"),
-        nullable=True,
-        index=True
-    )
-
-    category_id: Mapped[int] = mapped_column(
-        ForeignKey("bug_categories.category_id"),
-        nullable=False,
-        index=True
-    )
-
-    # Sprint table is not part of Module 1 schema,
-    # therefore sprint_id is kept as an optional field.
-    sprint_id: Mapped[int | None] = mapped_column(
-        Integer,
-        nullable=True,
-        index=True
-    )
-
-    # --------------------------------------------------------
-    # CORE ISSUE INFORMATION
-    # --------------------------------------------------------
-
-    title: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-        index=True
-    )
-
-    description: Mapped[str] = mapped_column(
-        Text,
-        nullable=False
-    )
-
-    reproduction_steps: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True
-    )
-
-    # --------------------------------------------------------
-    # CLASSIFICATION
-    # --------------------------------------------------------
-
-    issue_type: Mapped[IssueType] = mapped_column(
-    SQLEnum(IssueType),
-    nullable=False,
-    default=IssueType.BUG,
-    index=True
-)
-    severity: Mapped[Severity] = mapped_column(
-        SQLEnum(Severity),
-        nullable=False,
-        default=Severity.MINOR,
-        index=True
-    )
-
-    priority: Mapped[Priority] = mapped_column(
-        SQLEnum(Priority),
-        nullable=False,
-        default=Priority.MEDIUM,
-        index=True
-    )
-
-    status: Mapped[IssueStatus] = mapped_column(
-        SQLEnum(IssueStatus),
-        nullable=False,
-        default=IssueStatus.REPORTED,
-        index=True
-    )
-
-    # Developer stage can be expanded later as the
-    # development workflow becomes more detailed.
-    dev_stage: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True
-    )
+    category_id: int = Field(..., gt=0)
     
+    issue_type: IssueType = IssueType.BUG
 
+    title: str = Field(..., min_length=3, max_length=255)
 
-    # --------------------------------------------------------
-    # TARGET CONTEXT
-    # --------------------------------------------------------
+    description: str = Field(..., min_length=5)
 
-    affected_modules: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True
+    reproduction_steps: str | None = None
+
+    severity: Severity = Severity.MINOR
+
+    priority: Priority = Priority.MEDIUM
+
+    assignee_id: int | None = Field(
+        default=None,
+        gt=0
     )
 
-    environment_details: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True
+    sprint_id: int | None = Field(
+        default=None,
+        gt=0
     )
 
-    estimated_effort: Mapped[float | None] = mapped_column(
-        Float,
-        nullable=True
+    dev_stage: str | None = Field(
+        default=None,
+        max_length=50
     )
 
-    priority_score: Mapped[float | None] = mapped_column(
-        Float,
-        nullable=True
+    affected_modules: str | None = None
+
+    environment_details: str | None = None
+
+    estimated_effort: float | None = Field(
+        default=None,
+        ge=0
     )
 
-    # --------------------------------------------------------
-    # TIMESTAMPS
-    # --------------------------------------------------------
+    priority_score: float | None = Field(
+        default=None,
+        ge=0
+    )
+    # ============================================================
+# UPDATE ISSUE REQUEST
+# ============================================================
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
-        nullable=False,
-        index=True
+class IssueUpdate(BaseModel):
+    """
+    Schema used when updating an existing issue.
+
+    All fields are optional so the user can update
+    only the information that needs to be changed.
+    """
+
+    title: str | None = Field(
+        default=None,
+        min_length=3,
+        max_length=255
     )
 
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        nullable=False
+    description: str | None = Field(
+        default=None,
+        min_length=5
     )
 
-    resolved_at: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True
+    reproduction_steps: str | None = None
+
+    severity: Severity | None = None
+
+    priority: Priority | None = None
+
+    dev_stage: str | None = Field(
+        default=None,
+        max_length=50
     )
-    __table_args__ = (
-    Index(
-        "ix_issues_project_status",
-        "project_id",
-        "status"
-    ),
-    Index(
-        "ix_issues_assignee_status",
-        "assignee_id",
-        "status"
-    ),
-)
+
+    affected_modules: str | None = None
+
+    environment_details: str | None = None
+
+    estimated_effort: float | None = Field(
+        default=None,
+        ge=0
+    )
+
+    priority_score: float | None = Field(
+        default=None,
+        ge=0
+    )
+# ============================================================
+# ISSUE RESPONSE
+# ============================================================
+
+class IssueResponse(BaseModel):
+    """
+    Schema returned by the API after creating or retrieving
+    an issue.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+
+    project_id: int
+
+    reporter_id: int
+
+    assignee_id: int | None
+
+    category_id: int
+    
+    issue_type: IssueType
+
+    sprint_id: int | None
+
+    title: str
+
+    description: str
+
+    reproduction_steps: str | None
+
+    severity: Severity
+
+    priority: Priority
+
+    status: IssueStatus
+
+    dev_stage: str | None
+
+    affected_modules: str | None
+
+    environment_details: str | None
+
+    estimated_effort: float | None
+
+    priority_score: float | None
+
+    created_at: datetime
+
+    updated_at: datetime
+
+    resolved_at: datetime | None
+# ============================================================
+# UPDATE ISSUE STATUS
+# ============================================================
+
+class IssueStatusUpdate(BaseModel):
+    """
+    Schema used to update the status of an issue.
+    """
+
+    status: IssueStatus
+    # ============================================================
+# ASSIGN ISSUE
+# ============================================================
+
+class IssueAssignment(BaseModel):
+    """
+    Schema used to assign an issue to a user.
+    """
+
+    assignee_id: int = Field(..., gt=0)
